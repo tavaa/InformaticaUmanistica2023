@@ -1,0 +1,279 @@
+---
+title: "Progetto Informatica Umanistica"
+author: "Dalla Riva Alessandro, Propedo Demien, Tavano Matteo"
+date: "10/10/2023"
+output:
+  ioslides_presentation:
+    incremental: yes
+  beamer_presentation:
+    incremental: yes
+subtitle: Analisi dell’industria cinematografica dal 1980 al 2001
+editor_options:
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE, eval=TRUE, echo=FALSE)
+```
+
+
+```{r message=FALSE, warning=FALSE}
+library(readr)
+library(dplyr)
+library(scales)
+library(ggplot2)
+```
+
+## Parte 1
+
+- Con la crescita del PIL mondiale, sono cresciuti anche gli incassi dell'industria cinematografica? 
+
+- L'industria cinematografica ha contribuito alla crescita del PIL globale?
+
+- Le persone, disponendo di un reddito maggiore, hanno contribuito attraverso le spese extra, all' aumento del           fatturato dell' industria cinematografica?
+
+- Rispondiamo a queste domande.
+
+
+## Come è cambiato il PIL mondiale nel tempo?
+
+- Per condurre un analisi mirata a comprendere quanto effettivamente siano cresciuti gli incassi dell'industria cinematografica, dobbiamo chiederci preliminarmente quanto effettivamente il PIL sia cresciuto.
+
+- Analizziamo la crescita del prodotto interno lordo globale negli  anni compresi tra il 1980 e il 2000.
+
+- Quanto è cresciuto?
+
+
+
+## Primo Plot
+
+```{r echo=FALSE}
+data2 <- read_csv('/Users/Matteo/Desktop/uni/lezioni/terzoanno/extra/infoumanistica/progetto/csv/gdp_csv.csv')
+data2 <- na.omit(data2)
+
+# andiamo a ripulire i dati
+condizione1 <- data2$country_name == "World"
+condizione2 <- data2$year >= 1980
+condizione3 <- data2$year <= 2001
+
+data2 <- data2 %>%
+  filter(condizione1, condizione2, condizione3)
+
+ggplot(data = data2, mapping = aes(x = year, y = value)) + 
+  geom_line() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "PIL mondiale negli anni", x = "anno", y = "PIL") +
+  scale_y_continuous(labels = scales::dollar_format(prefix = "$"))
+
+
+```
+
+
+
+## Come sono cambiati gli incassi dei film nel corso degli anni?
+
+- Possiamo notare, dal precedente grafico, una crescita lineare dagli anni '80 ai primi anni 2000, con un lieve stallo   in quest'ultimi.
+
+- Dunque, è naturale chiedersi, se anche gli incassi dei film in questi anni abbia seguito questo trend.
+
+- Ci affidiamo al seguente Plot. 
+
+
+## Secondo Plot
+
+```{r echo=FALSE}
+data <- read_csv('/Users/Matteo/Desktop/uni/lezioni/terzoanno/extra/infoumanistica/progetto/csv/movies_updated.csv')
+data <- na.omit(data) 
+data_order_year <- data[order(data$year),]
+
+# somma degli incassi annuali
+sum_gross <- aggregate(gross ~ year, data = data_order_year, sum)
+
+ggplot(data = sum_gross, mapping = aes(x = year, y = gross)) +
+  geom_line() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Incassi durante gli anni", x = "anno", y = "incasso") + 
+  scale_y_continuous(labels = scales::dollar_format(prefix = "$"))
+
+```
+
+
+## Quindi..
+
+- E' evidente che ci sia una correlazione tra i due grafici, con l'aumentare del PIL globale, aumentano anche gli        incassi dei film.
+
+- Possiamo sostenere quindi che l'industria cinematografica, ha contribuito all'aumento del PIL globale.
+
+
+## Parte 2
+
+- Come è cambiato il budget dei film negli anni?
+
+- Dopo aver visto come sono cresciuti gli incassi nel tempo, andiamo a vedere come è cambiato il budget negli anni.
+
+- Ci chiediamo quindi, se il budget a disposizione delle industria cinematografiche abbia accompagnato la crescita di    tali incassi.
+
+- Plottiamo ora il grafico, per avere risposta a tale indagine.
+
+
+
+## Terzo Plot
+
+```{r echo=FALSE}
+sum_budget <- aggregate(budget ~ year, data = data_order_year, sum)
+
+ggplot(data = sum_budget, mapping = aes(x = year, y = budget)) +
+  geom_line() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Budget durante gli anni", x = "anno", y = "budget") + 
+  scale_y_continuous(labels = scales::dollar_format(prefix = "$"))
+```
+
+
+## Risultato
+
+- Il budget è aumentato di conseguenza al crescere dell'industria cinematografica, con un picco associato all'arrivo  del nuovo millennio e una lieve decrescita nei primi anni 2000.
+
+- Ricordiamo che gli anni '90 dell'industria cinematografica hanno prodotto dei capolavori come "Titanic",
+  "Star Wars" e "Jurassic Park".
+
+- Il budget associato a tali spettacoli era piuttosto elevato, per favorire effetti speciali e scene rivoluzionarie.
+
+
+## Parte 3
+
+- Ci chiediamo ora quali generi siano stati prodotti maggiormente nel periodo di interesse (1980-2001).
+
+- Quali di questi generi hanno incassato maggiormente? 
+
+- Che risposta vi aspettereste a tali quesiti?
+
+
+
+## Quali generi sono stati maggiormente prodotti?
+
+```{r echo=FALSE}
+count_genre <- data %>%
+  group_by(genre) %>%
+  summarise(n_film = n())
+
+percentuale <- (count_genre$n_film / sum(count_genre$n_film)) * 100
+
+ggplot(data = count_genre, aes(x = "", y = n_film, fill = genre)) +
+  geom_bar(stat = "identity", width = 0.1, color = "transparent") +
+  coord_polar(theta = "y") +  # Converte il grafico in un grafico a torta
+  labs(title = "Distribuzione dei film per genere", x = "", y = "", fill = "Genere") +
+  theme_void() +
+  theme(axis.text = element_blank(),  # Rimuove le etichette sull'asse x
+        axis.title = element_blank()) +
+  geom_text(aes(label = ifelse(percentuale > 19, paste0(round(percentuale,1), "%"), "")),
+            position = position_stack(vjust = 0.5))
+
+```
+
+## Risultato del plot
+
+- Possiamo notare come il genere "Comedy" occupi una percentaule maggiore rispetto agli altri.
+
+- Altri generi prodotti in abbondanza, vengono collocati nei generi "Drama" e "Action".
+
+- I generi di nicchia occupano solo piccoli spicchi del grafico a torta.
+
+
+
+## Quali generi hanno gli incassi maggiori?
+
+```{r echo=FALSE}
+sum_gross_genre <- aggregate(gross ~ genre, data = data, sum)
+
+ggplot(data = sum_gross_genre, mapping = aes(x = genre, y = gross, fill = gross)) +
+  geom_col(width = 0.75) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_y_continuous(labels = scales::dollar_format(prefix = "$")) +
+  labs(title = "Incassi per genere", x = "genere", y = "incasso", fill = "incasso") +
+  scale_fill_continuous(labels = scales::dollar_format(prefix = "$"))
+```
+
+## Parlando di incassi
+
+- Contrariamente al risultato precedente, possiamo notare come il genere "Action" abbia incassato molto di più rispetto   agli altri generi, con oltre $50 miliardi di dollari.
+
+- Sebbene il genere "Commedy" sia stato quello che conta più film prodotti, il suo incasso totale si classifica al       secondo posto della graduatoria (40$ miliardi di dollari).
+
+- Al terzo posto, troviamo il genere "Drama" che ha incassato oltre $20 miliardi.
+
+- Altri generi, hanno incassato cifre relativamente basse rispetto alle categorie precedenti.
+
+
+## Approfondimento
+
+- Proponiamo un interessante approfondimento, ci chiediamo come sono cambiati gli incassi relativamente ai generi dei    film nel corso del tempo.
+
+- Come possiamo immaginare i generi maggiormente prodotti, variano negli anni. Gli interessi degli spettatori sono       molto esigenti, e l'industria cinematografica ha dovuto portare dei cambiamenti.
+
+- In particolare, esibiamo un grafico per mostrare la variazione degli incassi in 3 generi diversi ("Action", "Comedy"  e "Drama").
+
+
+
+## Plot approfondimento
+
+
+```{r echo=FALSE}
+summarized_data <- data %>%
+  group_by(year, genre) %>%
+  summarise(total_gross = sum(gross))
+
+ggplot(data = summarized_data, mapping = aes(x = year, y = total_gross, color = genre)) + 
+  geom_line(data = filter(summarized_data, genre == "Action")) + 
+  geom_line(data = filter(summarized_data, genre == "Comedy")) + 
+  geom_line(data = filter(summarized_data, genre == "Drama")) + 
+  theme_minimal() +
+  labs(title = "Incassi per ogni genere di film durante il tempo", x = "tempo", y = "incasso", color = "genere") +
+  scale_y_continuous(labels = scales::dollar_format(prefix = "$"))
+```
+
+
+## Risultati approfondimento
+
+- Possiamo vedere dalla precedente visualizzazione, come nel periodo compreso tra il 1995 e il 2000, ci siano stati dei   picchi negli incassi, rispettivamente ai 3 generi proposti.
+
+- Non è casuale, essendo che "Titanic", film di grande successo per il genere "drama", sia stato rilasciato nel 1997.
+
+- Il 1997 è un periodo di notevole guadagno anche per il genere "action", registrando oltre $5 miliardi di incassi.
+
+
+## Ultima parte 
+
+- Come ultima indagine, proponiamo un grafico in cui mostriamo gli incassi nei film con Tom Cruise, relativamente ai     generi in cui ha recitato.
+
+- Tom Cruise, è un attore che ha suscitato in noi un particolare interesse essendo stato protagonista in film che tutti   abbiamo amato come "Top Gun" e "Mission Impossible".
+
+
+## Ultimo Plot
+
+```{r tom cruise, echo=FALSE}
+data_tc <- data[data$star == "Tom Cruise",]
+
+ggplot(data = data_tc, mapping = aes(x = year, y = gross, color = genre)) +
+  geom_point() +
+  geom_line(data = filter(data_tc, genre == "Action")) + 
+  geom_line(data = filter(data_tc, genre == "Comedy")) + 
+  geom_line(data = filter(data_tc, genre == "Drama")) + 
+  geom_text(aes(label = name), 
+             hjust = 0, size = 2, vjust = 0,  nudge_y = 0.8, check_overlap = TRUE) +
+  labs(title = "Incassi dei film con Tom Cruise negli anni", x = "anno", y = "incasso", color="genere") +
+  scale_y_continuous(labels = scales::dollar_format(prefix = "$")) +
+  xlim(1980, 2005)
+```
+
+
+## In conclusione
+
+- "Mission Impossible II" rappresenta il  vertice di questo grafico, seguito da "Mission Impossible" e "Top Gun", a       livello di incassi.
+
+- Il notevole talento di Tom, lo porta ad essere versatile in molti generi quali azione, dramma e commedia.
+
+- Essendo questi generi quelli più richiesti dal pubblico, possiamo notare una correlazione con il suo successo.
+
+
+
